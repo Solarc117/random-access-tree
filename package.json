@@ -1,0 +1,10 @@
+{
+  "type": "module",
+  "scripts": {
+    "test": "node ./node_modules/mocha/bin/mocha.js -u tdd"
+  },
+  "dependencies": {
+    "chai": "^4.3.7",
+    "mocha": "^10.1.0"
+  }
+}
