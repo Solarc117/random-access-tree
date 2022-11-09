@@ -1,6 +1,6 @@
 // @ts-nocheck
 import chai from 'chai'
-const assert = chai.assert.bind(chai)
+const assert = chai.assert
 
 /**
  * @description Asserts that arguments passed are null.
