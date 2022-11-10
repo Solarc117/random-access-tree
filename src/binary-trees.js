@@ -20,7 +20,9 @@ export default class BinaryTree {
    * @param  {Key[]} [keys]
    */
   constructor(keys = []) {
-    const sortedNodes = this.#sortKeys(keys).map((key, i) => new Node(key, i))
+    const sortedNodes = this.#sortKeys(
+      keys.map(key => key?.toLowerCase() || null)
+    ).map((key, i) => new Node(key, i))
 
     this.root = this.#createTree(sortedNodes)
     Object.freeze(this)
@@ -31,9 +33,11 @@ export default class BinaryTree {
    * @returns {BinaryTree}
    */
   add(key) {
-    if (this.contains(key)) return this
+    const keyToUse = key?.toLowerCase() || null
 
-    return new BinaryTree([...this.keys(), key])
+    return this.contains(keyToUse)
+      ? this
+      : new BinaryTree([...this.keys(), keyToUse])
   }
 
   /**
@@ -48,8 +52,10 @@ export default class BinaryTree {
    * @returns {boolean}
    */
   contains(key) {
+    const keyToUse = key?.toLowerCase() || null
+
     // Inefficient - could encounter the argument halfway, but would disregard it, finishing the keys array before actually checking for the argument.
-    return this.keys().includes(key)
+    return this.keys().includes(keyToUse)
   }
 
   /**
@@ -62,6 +68,7 @@ export default class BinaryTree {
   /**
    * @param {number} index
    * @returns {Key}
+   * @throws {TypeError} If argument is an invalid type.
    * @throws {RangeError} If argument is out of the tree's range.
    */
   keyAtIndex(index) {
@@ -79,16 +86,42 @@ export default class BinaryTree {
   /**
    * @param {Key} key
    * @returns {number}
-   * @throws {RangeError} If argument is not in the set.
+   * @throws {TypeError} If argument is an invalid type.
+   * @throws {EvalError} If argument is not in the tree.
    */
-  getIndex(key) {}
+  getIndex(key) {
+    if (typeof key !== 'string')
+      throw new TypeError(
+        `expected ${typeof key} argument to be of type string`
+      )
+    if (this.root === null)
+      throw new EvalError(`no node containing ${key} in tree`)
+    const keyToUse = key?.toLowerCase() || null
+
+    return this.#getIndex(keyToUse)
+  }
 
   /**
    * @param {Key} key
    * @returns {BinaryTree}
    *
    */
-  remove(key) {}
+  remove(key) {
+    if (
+      (key !== null && typeof key !== 'string') ||
+      (typeof key === 'string' && !/^[a-z]$/i.test(key))
+    )
+      throw new TypeError(
+        `expected ${typeof key} key to be of type null, or string with a single alphabetic character`
+      )
+    if (this.size() === 0)
+      throw new EvalError('cannot remove key from empty tree')
+
+    const keyToUse = key?.toLowerCase() || null,
+      keys = this.keys().filter(currentKey => currentKey !== keyToUse)
+
+    return new BinaryTree(keys)
+  }
 
   /**
    * @param {Key[]} keys
@@ -141,20 +174,20 @@ export default class BinaryTree {
    * @returns {Key[]}
    */
   #treeKeys(node) {
-    if (node === null) return []
-    if (node.key === null) return [null]
-
-    return [
-      node.key,
-      // @ts-ignore
-      ...this.#treeKeys(node.leftNode),
-      ...this.#treeKeys(node.rightNode),
-    ]
+    return node === null
+      ? []
+      : node.key === null
+      ? [null]
+      : [
+          node.key,
+          ...this.#treeKeys(node.leftNode),
+          ...this.#treeKeys(node.rightNode),
+        ]
   }
 
   /**
    * @param {number} index
-   * @param {Node} node
+   * @param {Node} [node]
    * @returns {Key}
    */
   // @ts-ignore
@@ -166,5 +199,30 @@ export default class BinaryTree {
           // @ts-ignore
           node[node.index > index ? 'leftNode' : 'rightNode']
         )
+  }
+
+  /**
+   * @param {Key} key
+   * @param {Node|null} [node]
+   * @returns {number}
+   * @throws {EvalError} If key is not in tree.
+   */
+  // @ts-ignore
+  #getIndex(key, node = this.root) {
+    if (node === null) throw new EvalError(`no node containing ${key} in tree`)
+    if (node.key === key) return node.index
+
+    return this.#getIndex(
+      key,
+      node[
+        key === null
+          ? 'leftNode'
+          : node.key === null
+          ? 'rightNode'
+          : node.key > key
+          ? 'leftNode'
+          : 'rightNode'
+      ]
+    )
   }
 }

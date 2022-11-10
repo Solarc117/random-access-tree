@@ -43,6 +43,14 @@ assert.strictEqualPairs = function (...pairs) {
 }
 
 /**
+ * @description Asserts strict deep equality for both objects in each array passed.
+ * @param  {...any} pairs Arrays containing values to compare.
+ */
+assert.deepStrictEqualPairs = function (...pairs) {
+  for (const [v1, v2] of pairs) assert.deepStrictEqual(v1, v2)
+}
+
+/**
  * @description Asserts the array argument contains every other argument passed.
  * @param {Array} array
  * @param  {...any} vals
