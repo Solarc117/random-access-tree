@@ -35,10 +35,6 @@ suite('🧪 Immutable Sorted Set', () => {
       tree5 = new BinaryTree('abcdefghijklmnop'.split('')),
       tree6 = tree5.add('z')
 
-    const myTree = new BinaryTree(['a', 'b', 'c'])
-    console.log('myTree:', myTree)
-    console.log('myTree.add(null):', myTree.add(null))
-
     // @ts-ignore
     assert.strictEqualPairs(
       [tree1.size(), 1],
