@@ -29,10 +29,35 @@ suite('🧪 Immutable Sorted Set', () => {
 
   test('add should return a new tree', done => {
     const tree1 = new BinaryTree(['a']),
-      tree2 = tree1.add('b')
+      tree2 = tree1.add('b'),
+      tree3 = new BinaryTree(),
+      tree4 = tree3.add('z'),
+      tree5 = new BinaryTree('abcdefghijklmnop'.split('')),
+      tree6 = tree5.add('z')
+
+    const myTree = new BinaryTree(['a', 'b', 'c'])
+    console.log('myTree:', myTree)
+    console.log('myTree.add(null):', myTree.add(null))
 
     // @ts-ignore
-    assert.strictEqualPairs([tree1.size(), 1], [tree2.size(), 2])
+    assert.strictEqualPairs(
+      [tree1.size(), 1],
+      [tree2.size(), 2],
+      [tree3.size(), 0],
+      [tree4.size(), 1],
+      [tree4.root?.key, 'z'],
+      [tree5.size(), 'abcdefghijklmnop'.length],
+      [tree6.size(), 'abcdefghijklmnop'.length + 1]
+    )
+
+    done()
+  })
+
+  test('add with an existing key should return the same tree', done => {
+    const tree1 = new BinaryTree([null, 'a', 'c', 'e']),
+      tree2 = tree1.add('c')
+
+    assert.strictEqual(tree1, tree2)
 
     done()
   })
@@ -89,6 +114,24 @@ suite('🧪 Immutable Sorted Set', () => {
     // prettier-ignore
     // @ts-ignore
       assert.strictEqual(largeTree.getIndex(key), index)
+
+    done()
+  })
+
+  test('getIndex2 should locate correct index without the use of an index property', done => {
+    const keyIndexPairs = [
+      ['a', 0],
+      ['g', 6],
+      ['j', 9],
+      ['m', 12],
+      ['o', 14],
+      ['z', 23],
+    ]
+
+    for (const [key, index] of keyIndexPairs)
+    // prettier-ignore
+    // @ts-ignore
+      assert.strictEqual(largeTree.getIndex2(key), index)
 
     done()
   })

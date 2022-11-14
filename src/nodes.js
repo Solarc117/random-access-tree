@@ -13,10 +13,13 @@ export default class Node {
    * @param {Node|null} [leftNode]
    * @param {Node|null} [rightNode]
    */
-  constructor(key, index, leftNode = null, rightNode = null) {
+  constructor(key, index, leftNode = null, rightNode = null, size = 1) {
     this.key = key
     this.index = index
     this.leftNode = leftNode
     this.rightNode = rightNode
+    this.size =
+      // @ts-ignore
+      size || (this.leftNode?.size || 0) + (this.rightNode?.size || 0) + 1
   }
 }

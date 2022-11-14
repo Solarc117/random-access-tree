@@ -17,11 +17,19 @@ export default class BinaryTree {
   root
 
   /**
-   * @param  {Key[]} [keys]
+   * @param  {Key[]|Node} [keysOrNode]
    */
-  constructor(keys = []) {
+  constructor(keysOrNode = []) {
+    // Remember to edit constructor so nodes are a parameter as well.
+    if (keysOrNode instanceof Node) {
+      this.root = keysOrNode
+      Object.freeze(this)
+      return
+    }
+
     const sortedNodes = this.#sortKeys(
-      keys.map(key => key?.toLowerCase() || null)
+      // @ts-ignore
+      keysOrNode.map(key => key?.toLowerCase() || null)
     ).map((key, i) => new Node(key, i))
 
     this.root = this.#createTree(sortedNodes)
@@ -33,11 +41,10 @@ export default class BinaryTree {
    * @returns {BinaryTree}
    */
   add(key) {
-    const keyToUse = key?.toLowerCase() || null
+    const keyToUse = key?.toLowerCase() || null,
+      result = this.#insertNode(keyToUse)
 
-    return this.contains(keyToUse)
-      ? this
-      : new BinaryTree([...this.keys(), keyToUse])
+    return result instanceof BinaryTree ? result : new BinaryTree(result)
   }
 
   /**
@@ -103,8 +110,27 @@ export default class BinaryTree {
 
   /**
    * @param {Key} key
+   * @returns {number}
+   * @throws {TypeError} If argument is an invalid type.
+   * @throws {EvalError} If argument is not in the tree.
+   */
+  getIndex2(key) {
+    if (typeof key !== 'string')
+      throw new TypeError(
+        `expected ${typeof key} argument to be of type string`
+      )
+    if (this.root === null)
+      throw new EvalError(`cannot find ${key} index in an empty tree`)
+    const keyToUse = key?.toLowerCase() || null
+
+    return this.#getIndex2(keyToUse)
+  }
+
+  /**
+   * @param {Key} key
    * @returns {BinaryTree}
-   *
+   * @throws {TypeError} If key is not null, or a string with a single alphabet character.
+   * @throws {EvalError} If tree is empty.
    */
   remove(key) {
     if (
@@ -117,10 +143,9 @@ export default class BinaryTree {
     if (this.size() === 0)
       throw new EvalError('cannot remove key from empty tree')
 
-    const keyToUse = key?.toLowerCase() || null,
-      keys = this.keys().filter(currentKey => currentKey !== keyToUse)
+    const result = this.#removeNode(key?.toLowerCase() || null)
 
-    return new BinaryTree(keys)
+    return result instanceof BinaryTree ? result : new BinaryTree(result)
   }
 
   /**
@@ -128,6 +153,7 @@ export default class BinaryTree {
    * @returns {Key[]}
    */
   #sortKeys(keys) {
+    // Would be more efficient if I could sort keys, AND transform them into nodes at the same time.
     return keys.sort((a, b) =>
       a === null ? -1 : b === null ? 1 : a.charCodeAt(0) - b.charCodeAt(0)
     )
@@ -167,6 +193,59 @@ export default class BinaryTree {
 
     // @ts-ignore
     return midNode
+  }
+
+  /**
+   * @param {Key} key
+   * @param {Node|null} currentNode
+   * @returns {Node|BinaryTree}
+   */
+  #insertNode(key, currentNode = this.root) {
+    if (currentNode === null) {
+      const newNode = new Node(key, 0) // Remember to add correct index.
+      newNode.size = 1
+      return newNode
+    }
+    if (currentNode.key === key) return this
+
+    const { key: currentKey, index, size } = currentNode,
+      newNode = new Node(currentKey, index)
+    newNode.size = size + 1
+
+    // "`" because its character code immediately precedes 'a'.
+    if ((currentKey || '`') > (key || '`')) {
+      const result = this.#insertNode(key, currentNode.leftNode)
+      if (result instanceof BinaryTree) return result
+
+      newNode.index = newNode.index + 1
+      newNode.leftNode = result
+      newNode.rightNode = this.#sumIndexes(currentNode.rightNode)
+      return newNode
+    }
+
+    const result = this.#insertNode(key, currentNode.rightNode)
+    if (result instanceof BinaryTree) return result
+
+    newNode.leftNode = currentNode.leftNode
+    newNode.rightNode = result
+    return newNode
+  }
+
+  /**
+   * @param {Node|null} node
+   * @returns {Node|null} Top node of new subtree (incremented indexes), or null if argument was null.
+   */
+  #sumIndexes(node) {
+    if (!node) return null
+
+    const { key, index } = node
+
+    return new Node(
+      key,
+      index + 1,
+      this.#sumIndexes(node.leftNode),
+      this.#sumIndexes(node.rightNode)
+    )
   }
 
   /**
@@ -224,5 +303,52 @@ export default class BinaryTree {
           : 'rightNode'
       ]
     )
+  }
+
+  /**
+   * @param {Key} key
+   * @param {Node|null} [node]
+   * @returns {number}
+   * @throws {EvalError} If key is not in tree.
+   */
+  #getIndex2(key, node = this.root, counter = 0) {
+    if (
+      node?.leftNode === null &&
+      node?.rightNode === null &&
+      node?.key !== key
+    )
+      throw new EvalError(`missing key ${key} in tree - cannot get index`)
+    if (node === null) return 0
+
+    if ((key || '`') < (node.key || '`'))
+      // Traverse left.
+      return this.#getIndex2(key, node.leftNode, counter)
+
+    if ((key || '`') > (node.key || '`')) {
+      // To prevent information loss as we traverse down right subtrees.
+      counter += (node.leftNode?.size || 0) + 1
+      return this.#getIndex2(key, node.rightNode, counter)
+    }
+
+    return counter + (node.leftNode?.size || 0)
+  }
+
+  /**
+   * @param {Key} key
+   * @returns {Node|BinaryTree}
+   */
+  #removeNode(key) {
+    if (this.size() === 1) return new BinaryTree()
+    if (key === this.root?.key) {
+      // Remove root node.
+      // If root.right is null, OR if left subtree is equal to or larger than right subtree (as determined by root.left.size), set left node to root, with its right set to previous root's right.
+      // Otherwise, set root.right to new root, with left set to previous root's left (IF new root is not null).
+      if (this.root?.rightNode === null) this.root = this.root.leftNode
+      if (this.root?.leftNode === null) this.root = this.root.rightNode
+      if (
+        (this.root?.leftNode.size || '`') >= (this.root?.rightNode.size || '`')
+      ) {
+      }
+    }
   }
 }
